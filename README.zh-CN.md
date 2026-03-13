@@ -129,18 +129,12 @@ Controller
 - MySQL
 
 Python 依赖见 [requirements.txt](./requirements.txt)。
+缺失的 Python 依赖（如 `PyYAML`、`PyMySQL`）可在执行时按需自动安装。
 
 仓库主要结构：
 - [SKILL.md](./SKILL.md)：Skill 规则与流程
 - [scripts](./scripts)：初始化、SQL 执行、自动测试、Postman 推送
 - [assets](./assets)：配置模板和 Postman 骨架文件
 - [references](./references)：详细规则与设计说明
-
-## 快速开始
-
-```bash
-pip install -r requirements.txt
-python scripts/autotest_runner.py --config api-test.yml --out .api-test/<ControllerName>_<timestamp>
-```
 
 如果这个项目正好解决了你的 API 自测问题，欢迎点个 Star，也欢迎分享给还在手工维护 Postman 的后端团队。

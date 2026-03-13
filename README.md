@@ -129,18 +129,12 @@ Runtime dependencies:
 - MySQL
 
 Python dependencies are listed in [requirements.txt](./requirements.txt).
+Missing Python packages such as `PyYAML` and `PyMySQL` can be installed automatically when needed.
 
 Main repository structure:
 - [SKILL.md](./SKILL.md): skill workflow and rules
 - [scripts](./scripts): bootstrap, SQL runner, autotest runner, Postman push
 - [assets](./assets): config template and Postman skeleton files
 - [references](./references): detailed rules and design notes
-
-## Quick Start
-
-```bash
-pip install -r requirements.txt
-python scripts/autotest_runner.py --config api-test.yml --out .api-test/<ControllerName>_<timestamp>
-```
 
 If this project matches your workflow, star the repo and share it with backend teams that still rely on fragile manual API testing.
