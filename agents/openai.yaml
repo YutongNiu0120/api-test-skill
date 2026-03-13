@@ -1,0 +1,4 @@
+interface:
+  display_name: "API Test"
+  short_description: "Generate Controller API test packs and optional autotest flows"
+  default_prompt: "Use $api-test to generate a Spring Controller API test pack with seed SQL, Postman cases, assertions, coverage notes, and optional autotest flow."

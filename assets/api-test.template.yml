@@ -1,0 +1,31 @@
+autotest:
+  enabled: false
+  always_cleanup: false
+
+generation:
+  sql_dialect: mysql
+  output_dir: .api-test
+  seed_id_base: -9000000
+  seed_id_step: 1
+  customer: sample-customer
+  current_user: SYSTEM
+
+database:
+  type: mysql
+  host: 127.0.0.1
+  port: 3306
+  database: app_db
+  username: root
+  password: your-password
+  charset: utf8mb4
+
+postman:
+  push_enabled: false
+  # 必填：目标 Postman Collection 名称。当前 Controller 产物会以同名 folder 挂到这个 Collection 下面。
+  collection: api-test-collection
+  workspace_id: your-postman-workspace-id
+  api_key: your-postman-api-key
+  # 必填：请求 URL 中使用的 Postman 变量名，例如 {{api-base-url}}/v1/...
+  url_prefix_var: api-base-url
+  # autotest.enabled=true 时建议填写真实基地址；Postman 推送时若已存在同名变量值则优先保留旧值。
+  url_prefix_value: ""

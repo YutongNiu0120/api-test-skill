@@ -1,0 +1,6 @@
+# 可能包含密钥的配置或文件（按实际情况调整）
+.secrets/
+**/*api_key*
+api-test.yml
+api-test.local.yml
+.api-test/
