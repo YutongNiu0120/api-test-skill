@@ -143,27 +143,20 @@ Put the skill under your local Codex skills directory:
 
 - `~/.codex/skills/api-test`
 
-Recommended usage:
+Recommended flow:
 
-- When using it in a repo for the first time, invoke `api-test` on a target Spring Controller and let it bootstrap `api-test.yml` in the repo root.
-- Review `api-test.yml` before running anything that touches MySQL or Postman CLI.
-- For manual API verification, generate the test pack first and inspect:
-  - `analysis/controller_report.json`
-  - `postman/collection.import.json`
-  - `sql/seed.sql`
-  - `sql/cleanup.sql`
-- For automated execution, enable `autotest.enabled=true` after the generated SQL and collection look correct.
-- If the target APIs require authentication, provide the token through `API_TEST_TOKEN` or `POSTMAN_TOKEN`.
-- When a run fails, keep the generated package and use Postman UI to reproduce and debug the failing request.
-- When the workflow becomes stable, use the generated package as a repeatable local or CI-like regression entry point.
-
-Typical first-run flow:
-
-- Place the skill in `~/.codex/skills/api-test`
-- Open your target Spring Boot repository with Codex
-- Ask Codex to generate an API test pack for a specific controller with `$api-test`
-- Let the skill create `api-test.yml`
-- Fill in the database and Postman-related configuration
-- Run generation again, then optionally enable autotest
+1. Open the target Spring Boot repository with Codex
+2. Ask Codex to generate an API test pack for one controller with `$api-test`
+3. Let the skill bootstrap `api-test.yml` in the repository root
+4. Fill in the database, Postman, and URL prefix configuration
+5. Run generation again and review these outputs first:
+   - `analysis/controller_report.json`
+   - `postman/collection.import.json`
+   - `sql/seed.sql`
+   - `sql/cleanup.sql`
+6. Enable `autotest.enabled=true` only after the generated package looks correct
+7. If the target APIs require authentication, provide the token through `API_TEST_TOKEN` or `POSTMAN_TOKEN`
+8. If a run fails, keep the generated package and continue debugging in Postman UI
+9. Once the workflow is stable, use the generated package as a repeatable local or CI-like regression entry point
 
 If this project matches your workflow, star the repo and share it with backend teams that still rely on fragile manual API testing.
