@@ -137,4 +137,33 @@ Python 依赖见 [requirements.txt](./requirements.txt)。
 - [assets](./assets)：配置模板和 Postman 骨架文件
 - [references](./references)：详细规则与设计说明
 
+## 快速开始
+
+把 skill 放到 Codex skills 目录：
+
+- `~/.codex/skills/api-test`
+
+推荐用法：
+
+- 新仓库第一次接入时，针对某个 Spring Controller 调用 `api-test`，让它在仓库根目录自动创建 `api-test.yml`
+- 在真正执行 MySQL 或 Postman CLI 之前，先检查 `api-test.yml`
+- 如果先做手工验证，优先看这些产物：
+  - `analysis/controller_report.json`
+  - `postman/collection.import.json`
+  - `sql/seed.sql`
+  - `sql/cleanup.sql`
+- 如果要走自动执行，再把 `autotest.enabled` 改成 `true`
+- 如果接口依赖鉴权 token，通过环境变量 `API_TEST_TOKEN` 或 `POSTMAN_TOKEN` 提供
+- 如果某次执行失败，保留生成出来的测试包，用 Postman UI 继续复现和排查失败接口
+- 当流程稳定后，可以把这套生成物作为本地或类 CI 的可重复回归入口
+
+第一次使用的典型流程：
+
+- 把 skill 放到 `~/.codex/skills/api-test`
+- 用 Codex 打开目标 Spring Boot 仓库
+- 让 Codex 用 `$api-test` 为某个 Controller 生成 API 自测包
+- 让 skill 自动创建 `api-test.yml`
+- 补齐数据库和 Postman 相关配置
+- 再次执行生成，确认没问题后按需开启自动测试
+
 如果这个项目正好解决了你的 API 自测问题，欢迎点个 Star，也欢迎分享给还在手工维护 Postman 的后端团队。

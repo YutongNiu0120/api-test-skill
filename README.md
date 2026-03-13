@@ -137,4 +137,33 @@ Main repository structure:
 - [assets](./assets): config template and Postman skeleton files
 - [references](./references): detailed rules and design notes
 
+## Quick Start
+
+Put the skill under your local Codex skills directory:
+
+- `~/.codex/skills/api-test`
+
+Recommended usage:
+
+- When using it in a repo for the first time, invoke `api-test` on a target Spring Controller and let it bootstrap `api-test.yml` in the repo root.
+- Review `api-test.yml` before running anything that touches MySQL or Postman CLI.
+- For manual API verification, generate the test pack first and inspect:
+  - `analysis/controller_report.json`
+  - `postman/collection.import.json`
+  - `sql/seed.sql`
+  - `sql/cleanup.sql`
+- For automated execution, enable `autotest.enabled=true` after the generated SQL and collection look correct.
+- If the target APIs require authentication, provide the token through `API_TEST_TOKEN` or `POSTMAN_TOKEN`.
+- When a run fails, keep the generated package and use Postman UI to reproduce and debug the failing request.
+- When the workflow becomes stable, use the generated package as a repeatable local or CI-like regression entry point.
+
+Typical first-run flow:
+
+- Place the skill in `~/.codex/skills/api-test`
+- Open your target Spring Boot repository with Codex
+- Ask Codex to generate an API test pack for a specific controller with `$api-test`
+- Let the skill create `api-test.yml`
+- Fill in the database and Postman-related configuration
+- Run generation again, then optionally enable autotest
+
 If this project matches your workflow, star the repo and share it with backend teams that still rely on fragile manual API testing.
