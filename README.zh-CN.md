@@ -6,44 +6,120 @@
 
 [English](./README.md) | 简体中文
 
-`api-test` 是一个面向 Spring Controller 的 Codex Skill，用来生成后端 API 自测包，并支持按需执行自动测试闭环。
+`api-test` 是一个面向 Spring Boot 项目的 API 自测生成器。
 
-它可以生成：
+它可以直接读取 Controller 源码，自动产出一整套可复用的 API 测试包，并支持按需执行自动测试闭环。
+
+生成内容包括：
+- Postman API 测试集合
 - `seed.sql` 和 `cleanup.sql`
-- 带只读断言的 Postman Collection
-- 覆盖率与证据链分析报告
-- 可推送到 Postman Workspace 的集合载荷
-- 基于 Python + MySQL + Postman CLI 的自动测试执行报告
+- 覆盖率与证据链报告
+- 自动测试执行报告
 
-## 这个项目解决什么问题
+这个项目的目标很直接：
 
-很多团队能生成 Postman 用例，但很少能同时做到：
-- 用例能回溯到 Controller、Service、Mapper、XML、数据表证据链
-- 覆盖真实业务分支，而不是只凑几个 happy path
-- 自动执行时仍然控制住 SQL 边界和清理策略
-- 既适合在 Postman UI 手工排查，也适合命令行自动回归
+源码 -> 自动生成 API 测试 -> 自动执行 -> 输出报告
 
-这个项目就是围绕这些问题设计的。
+## 解决什么问题
 
-## 核心能力
+大部分后端团队的 API 测试都会遇到这些问题：
 
-- 从源码生成 controller 级 API 自测包，而不是人工维护一堆请求清单。
-- 推断类似 `ApiResponse<T>` 的统一响应包装，并生成匹配的断言。
-- 通过固定负数 ID 生成 seed / cleanup SQL，降低测试数据污染风险。
-- 把当前 controller 的结果作为 folder 挂到指定 Postman Collection 下，而不是覆盖整个 Collection。
-- 支持可选自动执行链路：`seed.sql -> Postman CLI -> report -> cleanup.sql`。
-- 在目标仓库根目录自动初始化 `api-test.yml`，并自动加入 `.gitignore`。
+| 问题 | 结果 |
+| --- | --- |
+| Postman 请求手工维护 | 很快失效 |
+| 只测 happy path | 业务分支覆盖不足 |
+| 测试 SQL 不安全或太随意 | 不敢真正自动化 |
+| 测试结果和源码脱节 | 问题定位很慢 |
 
-## 安全性优势
+这个项目希望把流程改造成：
 
-- 不允许执行任意 SQL。自动执行只会运行 `sql/seed.sql` 和 `sql/cleanup.sql`。
-- 不读取现有数据库数据来“猜”测试数据，避免误碰线上或共享环境数据。
-- 初始化配置文件时会自动加入 `.gitignore`，避免明文配置误提交。
-- CLI 执行 token 支持从环境变量读取，不要求硬编码到仓库里。
-- 生成的 Postman 断言脚本是只读的，不会修改 Postman 变量。
-- 是否自动清理完全由 `autotest.always_cleanup` 控制，便于在安全和排查之间做取舍。
+写 Controller -> 生成 API 自测包 -> 执行测试 -> 查看报告
 
-## 项目依赖
+## 核心功能
+
+### 1. 自动生成 API 自测包
+
+从 Spring Controller 源码直接生成：
+- `seed.sql`
+- `cleanup.sql`
+- Postman Collection
+- 请求断言脚本
+
+不需要再手工维护越来越多的 Postman 请求。
+
+### 2. 覆盖真实业务分支
+
+生成的测试用例不是只覆盖成功路径，而是尽量根据源码逻辑覆盖真实分支。
+
+包括：
+- 参数校验
+- 资源不存在
+- 业务冲突
+- 分支条件路径
+
+### 3. 自动执行完整测试链路
+
+支持可选自动测试流程：
+
+`seed.sql`
+-> `postman collection run`
+-> 测试报告
+-> `cleanup.sql`
+
+既可以本地运行，也适合接入类 CI 的自动执行流程。
+
+### 4. 生成 API 测试证据链
+
+生成的分析结果可以追溯到：
+
+Controller
+-> Service
+-> Mapper
+-> SQL
+-> table
+
+便于确认测试是否真的覆盖到了关键逻辑。
+
+### 5. 更安全的测试数据策略
+
+默认使用固定负数 ID 生成测试数据，例如：
+- `-10001`
+- `-10002`
+
+这样更不容易和现有数据冲突。
+
+## 工作流程
+
+典型使用方式如下：
+
+写 Controller
+-> 运行 `api-test`
+-> 生成 API 测试包
+-> 执行自动测试
+-> 查看报告
+
+如果某个接口失败，生成出来的测试包也可以直接在 Postman UI 里继续手工排查。
+
+## 安全设计
+
+这个项目对执行边界是保守设计的。
+
+- 自动执行只允许运行 `sql/seed.sql` 和 `sql/cleanup.sql`
+- 不允许执行其它任意 SQL 文件
+- 不读取现有数据库数据来合成测试数据
+- token 可以通过环境变量提供，不要求写入仓库
+- 生成的 Postman 断言是只读的，不会修改 Postman 变量
+- cleanup 是否执行由 `autotest.always_cleanup` 控制
+
+目标不是“为了自动化什么都能跑”，而是在可用的前提下尽量保证安全边界清晰。
+
+## 技术实现
+
+实现组成：
+- [SKILL.md](./SKILL.md) 定义 Skill 工作流
+- Python 脚本负责配置初始化、SQL 执行、自动测试编排、Postman 推送
+- Postman CLI 负责执行生成出的 Collection
+- MySQL 负责 seed 和 cleanup 执行
 
 运行依赖：
 - Python 3.10+
@@ -52,51 +128,19 @@
 - Postman CLI
 - MySQL
 
-Python 依赖已经写在 [requirements.txt](./requirements.txt)。
+Python 依赖见 [requirements.txt](./requirements.txt)。
 
-可选工具：
-- GitHub CLI，如果你希望直接用命令行创建和推送公开仓库
+仓库主要结构：
+- [SKILL.md](./SKILL.md)：Skill 规则与流程
+- [scripts](./scripts)：初始化、SQL 执行、自动测试、Postman 推送
+- [assets](./assets)：配置模板和 Postman 骨架文件
+- [references](./references)：详细规则与设计说明
 
 ## 快速开始
 
-1. 安装 Python 依赖：
-
 ```bash
 pip install -r requirements.txt
-```
-
-2. 把这个仓库放到本地 Codex skills 目录，或者作为可复用模板使用。
-
-3. 让 skill 在目标项目根目录自动初始化 `api-test.yml`。
-
-4. 针对某个 Spring Controller 生成测试包。
-
-5. 如需自动执行：
-
-```bash
 python scripts/autotest_runner.py --config api-test.yml --out .api-test/<ControllerName>_<timestamp>
 ```
 
-## 默认工作流
-
-- 从目标 Controller 生成测试包。
-- 检查 `analysis/controller_report.json`。
-- 执行 `seed.sql`，再运行生成出来的 Postman Collection。
-- 查看 `report/run-summary.json`。
-- 根据调试需要决定保留数据还是自动清理。
-
-## 仓库结构
-
-- [SKILL.md](./SKILL.md)：Skill 主定义和工作流程
-- [assets](./assets)：配置模板和 Collection 骨架
-- [scripts](./scripts)：配置初始化、SQL 执行、自动测试、Postman 推送
-- [references](./references)：更细的规则和设计说明
-- [agents/openai.yaml](./agents/openai.yaml)：技能列表和 UI 元数据
-
-## 为什么值得 Star
-
-- 它把 API 自测从零散手工动作，变成了可复用、可审计、可自动执行的流程。
-- 它对安全边界有明确约束，不会为了“自动化”把执行面无限放大。
-- 它更贴近真实的 Spring + MyBatis 项目，而不是只适合 Demo。
-
-如果这个项目对你有帮助，欢迎点个 Star，也欢迎分享给有同样痛点的后端团队。
+如果这个项目正好解决了你的 API 自测问题，欢迎点个 Star，也欢迎分享给还在手工维护 Postman 的后端团队。

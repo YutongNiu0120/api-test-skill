@@ -6,44 +6,120 @@
 
 English | [简体中文](./README.zh-CN.md)
 
-`api-test` is a Codex skill for generating Spring Controller API test packs and optionally running them end to end.
+`api-test` is an API self-test generator for Spring Boot projects.
 
-It can generate:
+It reads Controller source code and produces a reusable API test pack, with optional end-to-end execution.
+
+Generated outputs include:
+- Postman API test collections
 - `seed.sql` and `cleanup.sql`
-- Postman collections with read-only assertions
 - coverage and evidence reports
-- optional Postman Workspace push payloads
-- optional autotest execution reports with Python + MySQL + Postman CLI
+- autotest execution reports
 
-## Why This Project
+The goal is simple:
 
-Most backend teams can generate Postman collections. Fewer can generate collections that are:
-- traceable back to Controller, Service, Mapper, XML, and table evidence
-- designed for realistic business-branch coverage instead of shallow happy paths
-- safe enough to run with automated SQL and cleanup boundaries
-- ready for both manual debugging in Postman UI and scripted execution in CI-like flows
+source code -> generated API tests -> automated execution -> readable report
 
-This project focuses on those gaps.
+## What Problem It Solves
 
-## Key Features
+Most backend API testing breaks down in predictable ways:
 
-- Generate controller-scoped API test packs from source code instead of hand-written request lists.
-- Infer response wrappers such as `ApiResponse<T>` and generate assertions accordingly.
-- Build seed and cleanup SQL with deterministic negative IDs for safer test data isolation.
-- Push generated controller folders into a named Postman collection instead of overwriting the whole collection.
-- Support optional autotest flow: `seed.sql -> Postman CLI -> report -> cleanup.sql`.
-- Auto-bootstrap `api-test.yml` into the target repo root and append it to `.gitignore`.
+| Problem | Result |
+| --- | --- |
+| Postman requests are maintained by hand | They drift quickly |
+| Only happy paths are tested | Business branch coverage stays weak |
+| Test SQL is unsafe or ad hoc | Teams hesitate to automate |
+| Test output is disconnected from source code | Root cause analysis is slow |
 
-## Security Advantages
+This project is designed to change that workflow into:
 
-- No arbitrary SQL execution. Autotest only allows `sql/seed.sql` and `sql/cleanup.sql`.
-- No reading from existing database rows to synthesize test data.
-- Configuration files are automatically added to `.gitignore` when bootstrapped.
-- Tokens for CLI execution can come from environment variables instead of being committed.
+write controller -> generate API test pack -> run tests -> review report
+
+## Core Features
+
+### 1. Generate API test packs automatically
+
+Generate from Spring Controller source:
+- `seed.sql`
+- `cleanup.sql`
+- Postman collections
+- request assertions
+
+You do not need to manually maintain a growing list of Postman requests.
+
+### 2. Cover real business branches
+
+Generated cases are driven by source code logic, not only success paths.
+
+They can target:
+- parameter validation
+- not found cases
+- business conflicts
+- branch-specific behavior
+
+### 3. Run the full autotest flow
+
+Optional autotest flow:
+
+`seed.sql`
+-> `postman collection run`
+-> test report
+-> `cleanup.sql`
+
+This is usable both for local verification and CI-like execution.
+
+### 4. Build API test evidence chains
+
+The generated analysis can trace:
+
+Controller
+-> Service
+-> Mapper
+-> SQL
+-> table
+
+This makes it easier to see whether important logic is actually covered.
+
+### 5. Use safer test data defaults
+
+Generated test data uses deterministic negative IDs such as:
+- `-10001`
+- `-10002`
+
+That reduces the chance of colliding with existing data.
+
+## Workflow
+
+Typical usage looks like this:
+
+write controller
+-> run `api-test`
+-> generate API test pack
+-> run autotest
+-> read report
+
+The generated package is also usable manually in Postman UI when you want to debug a failing API by hand.
+
+## Security Design
+
+This project is intentionally conservative about execution boundaries.
+
+- Autotest only allows `sql/seed.sql` and `sql/cleanup.sql`.
+- It does not execute arbitrary SQL files.
+- It does not read existing database rows to synthesize test data.
+- Tokens can be provided through environment variables instead of committed config.
 - Generated Postman assertions are read-only and do not mutate Postman variables.
-- Cleanup is policy-controlled through `autotest.always_cleanup`, which helps balance safety and debugging convenience.
+- Cleanup behavior is controlled by `autotest.always_cleanup`.
 
-## Dependencies
+The point is to make automation usable without turning it into an unsafe shell around your database.
+
+## Technical Implementation
+
+Implementation stack:
+- Codex skill definition in [SKILL.md](./SKILL.md)
+- Python scripts for config bootstrap, SQL execution, autotest orchestration, and Postman push
+- Postman CLI for collection execution
+- MySQL for seed and cleanup execution
 
 Runtime dependencies:
 - Python 3.10+
@@ -52,51 +128,19 @@ Runtime dependencies:
 - Postman CLI
 - MySQL
 
-Bundled Python dependencies are listed in [requirements.txt](./requirements.txt).
+Python dependencies are listed in [requirements.txt](./requirements.txt).
 
-Optional external tools:
-- GitHub CLI, if you want to create/push the public repo from the terminal
+Main repository structure:
+- [SKILL.md](./SKILL.md): skill workflow and rules
+- [scripts](./scripts): bootstrap, SQL runner, autotest runner, Postman push
+- [assets](./assets): config template and Postman skeleton files
+- [references](./references): detailed rules and design notes
 
 ## Quick Start
 
-1. Install Python dependencies:
-
 ```bash
 pip install -r requirements.txt
-```
-
-2. Put the skill under your local Codex skills directory, or copy this repo as a reusable template.
-
-3. Let the skill bootstrap `api-test.yml` in your target project root.
-
-4. Generate the test pack for a target Spring Controller.
-
-5. Optionally run autotest:
-
-```bash
 python scripts/autotest_runner.py --config api-test.yml --out .api-test/<ControllerName>_<timestamp>
 ```
 
-## Default Workflow
-
-- Generate the test pack from the target controller.
-- Review `analysis/controller_report.json`.
-- Execute `seed.sql` and run the generated Postman collection.
-- Read `report/run-summary.json`.
-- Decide whether to keep data for debugging or cleanup automatically.
-
-## Repository Structure
-
-- [SKILL.md](./SKILL.md): the actual skill definition and workflow
-- [assets](./assets): config templates and collection skeletons
-- [scripts](./scripts): config bootstrap, SQL runner, autotest runner, Postman push
-- [references](./references): deeper rules and design notes
-- [agents/openai.yaml](./agents/openai.yaml): UI-facing skill metadata
-
-## Why Star This Repo
-
-- It turns API self-testing from ad hoc manual work into a reusable, auditable workflow.
-- It is opinionated about safety without becoming heavy or slow.
-- It is practical for real Spring + MyBatis codebases, not just toy demos.
-
-If this helps your team ship safer backend changes faster, star the repo and share it.
+If this project matches your workflow, star the repo and share it with backend teams that still rely on fragile manual API testing.
